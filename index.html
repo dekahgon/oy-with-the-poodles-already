@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>walking through the streets</title>
+<style>
+  :root{
+    --sash:#001df7;
+    --paper:#ffffff;
+    --bar:28px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--paper);font-family:"Gill Sans","Gill Sans MT",Calibri,"Trebuchet MS",sans-serif;}
+
+  /* ---------- top sash ---------- */
+  #sash{
+    position:fixed;top:0;left:0;right:0;height:var(--bar);z-index:50;
+    background:var(--sash);color:#fff;
+    display:flex;align-items:center;padding:0 10px;
+    font-weight:700;font-size:15px;letter-spacing:.3px;
+  }
+
+  /* ---------- the path ---------- */
+  #path{position:relative;width:100%;margin-top:var(--bar);overflow:hidden}
+  .w{
+    position:absolute;white-space:nowrap;transform:translateX(-50%);
+    font-size:16px;line-height:1.1;user-select:none;
+  }
+
+  /* ---------- collected images, floating top-left, columns grow to the right ---------- */
+  #stack{
+    position:fixed;top:calc(var(--bar) + 10px);left:10px;z-index:40;
+    height:calc(100vh - var(--bar) - 20px);
+    display:flex;flex-direction:column;flex-wrap:wrap;align-content:flex-start;
+    gap:8px;pointer-events:none;
+  }
+  #stack .thumb{width:72px;height:72px;flex:none;display:flex;align-items:center;justify-content:center}
+  #stack .thumb img{width:100%;height:100%;object-fit:contain;display:block}
+
+  /* ---------- pop-up ---------- */
+  #veil{position:fixed;inset:0;z-index:90;background:transparent;pointer-events:none}
+  #veil.on{pointer-events:auto}
+  #flyer{position:fixed;z-index:100;display:none;background:transparent}
+  #flyer img{width:100%;height:100%;object-fit:contain;display:block;background:transparent}
+  .ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;text-align:center;
+    background:#e9e6da;color:#555;padding:8px;font-size:14px}
+</style>
+</head>
+<body>
+
+<div id="sash">walking through the streets</div>
+
+<div id="stack"></div>
+
+<div id="path"></div>
+
+<div id="veil"></div>
+<div id="flyer"></div>
+
+<script>
+/* ==================== DATA ==================== */
+const LIST1 = [
+"Manhole cover","Drain grate","Sewer grate","Pavement stone","Cobblestone","Kerbstone","Concrete bollard","Metal bollard","Street lamp","Traffic light",
+"Street sign","Road sign","Parking sign","Street name plaque","Building number plate","Fire hydrant","Water valve cover","Electrical utility box","Telephone junction box","Traffic control cabinet",
+"Metal railing","Guardrail","Pedestrian barrier","Bike rack","Public bench","Bus stop shelter","Bus stop sign","Newspaper vending box","Public waste bin","Recycling bin",
+"Public ashtray","Drinking fountain","Public telephone booth","Mailbox","Parking meter","Bicycle repair station","Public clock","Street mirror","Advertising billboard","Poster display frame",
+"Information board","Public noticeboard","Street map panel","Tree guard","Tree grate","Flower planter","Concrete planter","Public sculpture","Fountain","Flagpole",
+"Zebra crossing markings","Bicycle lane markings","Road divider","Speed bump","Raised pavement marker","Tactile paving tile","Road stud reflector","Painted road arrow","Painted parking line","Concrete road barrier",
+"Drainage channel","Roadside curb ramp","Pedestrian crossing button","Traffic signal pole","Street bollard chain","Metal access hatch","Expansion joint","Concrete retaining wall","Staircase","Handrail",
+"Ramp","Pavement edging","Brick wall","Stone wall","Building facade","Window grille","Metal shutter","Door knocker","Doorbell panel","Intercom",
+"Mail slot","Ventilation grille","Drainpipe","Rainwater gutter","Downspout","Exterior electrical conduit","Wall-mounted light","Security camera","Satellite dish","Air-conditioning unit",
+"Metal fire escape","Balcony railing","Window sill","Architectural cornice","Decorative wall tile","Mosaic pavement","Building entrance canopy","Metal gate","Stone column","Foundation stone",
+"Utility pole","Electrical transformer","Overhead power line","Tram tracks","Railway crossing barrier","Streetcar stop platform","Underground ventilation shaft","Roadside reflector post","Concrete median strip","Pedestrian island",
+"Bollard light","Streetlight control box","Cable access cover","Gas meter cabinet","Water meter cover","Fire department connection","Emergency call box","Parking barrier","Automatic parking gate","Loading zone sign",
+"Street advertising column","Bus timetable display","Traffic information display","Public bicycle docking station","Electric scooter docking station","Bicycle lane separator","Roadside drainage grate","Concrete steps","Stone staircase","Retaining fence",
+"Wrought-iron fence","Chain-link fence","Stone paving slab","Concrete paving slab","Brick pavement","Street tree","Tree trunk support","Street garden border","Irrigation pipe","Wall-mounted planter",
+"Building cornice ornament","Decorative facade relief","Stone archway","Window ledge","Exterior ventilation duct","Roof drain outlet","Metal awning","Building column base","Foundation ventilation grille","Public drinking water tap"
+];
+
+/* List 2: item N  ->  image "N.png" (same folder as this html file) */
+const LIST2 = [
+"Small stone","Pebble","Quartz fragment","Small piece of brick","Ceramic tile fragment","Broken porcelain piece","Glass shard","Small piece of concrete","Marble fragment","Seashell",
+"Acorn","Pine cone","Dried leaf","Feather","Small piece of wood","Nail","Screw","Bolt","Washer","Metal spring",
+"Bottle cap","Metal tab from a can","Key","Broken key","Metal chain link","Small metal hook","Safety pin","Paper clip","Coin","Small metal badge",
+"Old photograph","Old identity card","Business card","Postcard","Magazine","Newspaper clipping","Torn book page","Old ticket","Receipt","Handwritten note",
+"Sticker","Trading card","Playing card","Small poster fragment","Old envelope","Button","Earring","Broken toy","Small plastic figurine","Keychain",
+"Marble (glass ball)","Dice","Bead","Broken necklace","Bracelet charm","Hair clip","Safety buckle","Zipper pull","Shoelace","Small piece of fabric",
+"Thread spool","Rubber band","Pencil","Crayon","Pen cap","Eraser","Pencil sharpener","Matchbox","Cigarette lighter","Empty film canister",
+"Film negative","USB flash drive","SIM card","Old cassette tape","Small plastic cap","Broken sunglasses lens","Watch strap","Watch battery","Small mirror fragment","Comb",
+"Toy car","Plastic building block","Bottle label","Wine cork","Small metal gear","Fishing weight","Small ceramic figurine","Broken picture frame fragment","Stamped postage stamp","Lottery ticket",
+"Train ticket","Boarding pass","Folded map","Recipe card","Calendar fragment","Small rubber wheel","Plastic animal toy","Wooden bead","Metal eyelet","Broken ornament"
+];
+
+/* ==================== MIX THE TWO LISTS ==================== */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);
+  t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const rnd = mulberry32(20261104);
+
+const items = [
+  ...LIST1.map(t => ({text:t, img:null})),
+  ...LIST2.map((t,i) => ({text:t, img:(i+1)+'.png', idx:i+1}))
+];
+for(let i=items.length-1;i>0;i--){            // Fisher-Yates, seeded => same order every visit
+  const j=Math.floor(rnd()*(i+1)); [items[i],items[j]]=[items[j],items[i]];
+}
+const pathEl = document.getElementById('path');
+const TOP = 70;
+const ROW = 23;             // tightest vertical spacing between words (px)
+
+/* vertical positions: mostly tight clusters, now and then a big empty gap */
+const ys = []; {
+  let y = TOP;
+  items.forEach(()=>{
+    ys.push(y);
+    const r = rnd();
+    if(r < 0.10)      y += 160 + rnd()*320;      // big gap
+    else if(r < 0.25) y += 45 + rnd()*50;        // small gap
+    else              y += ROW + rnd()*7;        // tight cluster
+  });
+  ys.push(y);
+}
+const jitterX = items.map(()=> (rnd()+rnd()+rnd()-1.5)/1.5);   // bell-shaped, -1..1
+
+/* ==================== SERPENTINE LAYOUT ==================== */
+let els = [];
+
+function centerX(y, W){     // x (in px) of the winding path at height y
+  const amp = Math.min(W*0.28, 360);
+  return W/2 + amp*Math.sin(y/330) + amp*0.18*Math.sin(y/97);
+}
+
+function layout(){
+  const W = pathEl.clientWidth;
+  pathEl.style.height = (ys[ys.length-1] + 160)+'px';
+  els.forEach((el,i)=>{
+    const y = ys[i];
+    const spread = Math.min(W*0.20, 230);
+    let x = centerX(y,W) + jitterX[i]*spread;
+    const half = el.offsetWidth/2 + 8;
+    x = Math.max(half, Math.min(W-half, x));
+    el.style.left = x+'px';
+    el.style.top  = y+'px';
+  });
+}
+
+function build(){
+  items.forEach((it,i)=>{
+    const el=document.createElement('div');
+    el.className='w';
+    el.textContent=it.text.toLowerCase();
+    const t=i/items.length;
+    const hue = 165 + 85*Math.sin(t*Math.PI*2.2) ;           // teal -> blue -> green wanders
+    el.style.color=`hsl(${hue},42%,44%)`;
+    el.style.fontWeight = '400';
+    if(it.img){ el.style.cursor='default'; el.addEventListener('click',()=>collect(it)); }
+    pathEl.appendChild(el); els.push(el);
+  });
+  layout();
+}
+window.addEventListener('resize',layout);
+window.addEventListener('load',layout);   // fonts may change word widths
+build();
+
+/* ==================== COLLECTING ==================== */
+const veil=document.getElementById('veil'), flyer=document.getElementById('flyer');
+const stack=document.getElementById('stack');
+let busy=false;
+
+function makeImg(src,label){
+  const img=new Image(); img.src=src; img.alt=label;
+  img.onerror=()=>{ const p=document.createElement('div'); p.className='ph'; p.textContent=label; img.replaceWith(p); };
+  return img;
+}
+const wait = ms => new Promise(r=>setTimeout(r,ms));
+
+async function collect(it){
+  if(busy) return;
+  busy=true;
+
+  // 1. big pop-up in the centre
+  const size = Math.min(window.innerWidth*0.8, window.innerHeight*0.7, 640);
+  const cx=(window.innerWidth-size)/2, cy=(window.innerHeight-size)/2-10;
+  flyer.innerHTML=''; flyer.appendChild(makeImg(it.img,it.text));
+  Object.assign(flyer.style,{display:'block',left:cx+'px',top:cy+'px',width:size+'px',height:size+'px',opacity:0});
+  veil.classList.add('on');
+  await flyer.animate([{opacity:0,transform:'scale(.6)'},{opacity:1,transform:'scale(1)'}],
+                      {duration:380,easing:'cubic-bezier(.2,.9,.3,1.2)',fill:'forwards'}).finished;
+  await Promise.race([wait(1700), new Promise(r=>veil.addEventListener('click',r,{once:true}))]);
+
+  // 2. prepare the slot in the floating stack (columns wrap to the right automatically)
+  const thumb=document.createElement('div'); thumb.className='thumb';
+  thumb.appendChild(makeImg(it.img,it.text));
+  thumb.style.visibility='hidden';
+  stack.appendChild(thumb);
+
+  // 3. fly into the top-left corner
+  const r=thumb.getBoundingClientRect();
+  veil.classList.remove('on');
+  await flyer.animate([
+    {left:cx+'px',top:cy+'px',width:size+'px',height:size+'px',opacity:1},
+    {left:r.left+'px',top:r.top+'px',width:r.width+'px',height:r.height+'px',opacity:1}
+  ],{duration:700,easing:'cubic-bezier(.6,0,.3,1)',fill:'forwards'}).finished;
+  thumb.style.visibility='visible';
+  flyer.style.display='none'; flyer.getAnimations().forEach(a=>a.cancel());
+  busy=false;
+}
+</script>
+</body>
+</html>
