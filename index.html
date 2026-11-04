@@ -120,6 +120,15 @@ const ys = []; {
   });
   ys.push(y);
 }
+/* the first 5 words of the path: very recognisable city objects from list 1 */
+const OPENING = ["Street lamp","Traffic light","Public bench","Fire hydrant","Cobblestone"];
+{
+  const first = OPENING.map(t => items.find(it => !it.img && it.text === t));
+  const rest  = items.filter(it => !first.includes(it));
+  items.length = 0;
+  items.push(...first, ...rest);
+}
+
 const jitterX = items.map(()=> (rnd()+rnd()+rnd()-1.5)/1.5);   // bell-shaped, -1..1
 
 /* ==================== SERPENTINE LAYOUT ==================== */
